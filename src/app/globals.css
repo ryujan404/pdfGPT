@@ -243,6 +243,39 @@ body {
   opacity: 0.8;
 }
 
+/* Loading animation */
+.loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.loading-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #9ca3af;
+  animation: loading-bounce 1.4s ease-in-out infinite both;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes loading-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
 /* Question Form */
 .question-form {
   display: flex;
@@ -260,17 +293,32 @@ body {
   border-radius: 8px;
   font-size: 14px;
   transition: all 0.3s ease;
+  color: #1f2937;
+  background-color: white;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  -webkit-text-fill-color: #1f2937;
+  -webkit-box-shadow: 0 0 0 1000px white inset;
+  box-shadow: 0 0 0 1000px white inset;
+}
+
+.question-input::placeholder {
+  color: #6b7280;
+  opacity: 1;
 }
 
 .question-input:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  color: #1f2937;
 }
 
 .question-input:disabled {
   background: #f3f4f6;
   cursor: not-allowed;
+  color: #6b7280;
 }
 
 .ask-button {
@@ -296,6 +344,27 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Mobile-specific input fixes */
+@media (max-width: 768px) {
+  .question-input {
+    color: #1f2937 !important;
+    -webkit-text-fill-color: #1f2937 !important;
+    background-color: white !important;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .question-input::placeholder {
+    color: #6b7280 !important;
+    -webkit-text-fill-color: #6b7280 !important;
+    opacity: 1 !important;
+  }
+
+  .question-input:focus {
+    color: #1f2937 !important;
+    -webkit-text-fill-color: #1f2937 !important;
+  }
 }
 
 /* Responsive Design */

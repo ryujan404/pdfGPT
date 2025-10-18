@@ -11,6 +11,7 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
+  const [currentQuestion, setCurrentQuestion] = useState("");
 
   // Handle file selection
   const handleFileChange = (e) => {
@@ -71,8 +72,12 @@ export default function Home() {
       return;
     }
 
+    // Store the current question and clear input immediately
+    const userQuestion = question.trim();
+    setCurrentQuestion(userQuestion);
+    setQuestion("");
     setIsGenerating(true);
-    setAnswer("Generating answer...");
+    setAnswer("");
 
     try {
       const response = await fetch("/api/chat", {
@@ -80,20 +85,24 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question: userQuestion }),
       });
 
       const data = await response.json();
 
       if (data.success) {
         setAnswer(data.answer);
-        setChatHistory([...chatHistory, { question, answer: data.answer }]);
-        setQuestion("");
+        setChatHistory([...chatHistory, { question: userQuestion, answer: data.answer }]);
+        setCurrentQuestion("");
       } else {
         setAnswer("❌ Error: " + data.message);
+        setChatHistory([...chatHistory, { question: userQuestion, answer: "❌ Error: " + data.message }]);
+        setCurrentQuestion("");
       }
     } catch (error) {
       setAnswer("❌ Error: " + error.message);
+      setChatHistory([...chatHistory, { question: userQuestion, answer: "❌ Error: " + error.message }]);
+      setCurrentQuestion("");
     } finally {
       setIsGenerating(false);
     }
@@ -144,28 +153,39 @@ export default function Home() {
           <>
             {/* Chat History */}
             <div className="chat-history">
-              {chatHistory.length === 0 ? (
+              {chatHistory.length === 0 && !currentQuestion ? (
                 <p className="empty-state">Ask a question about your PDF below!</p>
               ) : (
-                chatHistory.map((chat, index) => (
-                  <div key={index} className="chat-item">
-                    <div className="question-bubble">
-                      <strong>Q:</strong> {chat.question}
+                <>
+                  {/* Previous chat history */}
+                  {chatHistory.map((chat, index) => (
+                    <div key={index} className="chat-item">
+                      <div className="question-bubble">
+                        <strong>Q:</strong> {chat.question}
+                      </div>
+                      <div className="answer-bubble">
+                        <strong>A:</strong> {chat.answer}
+                      </div>
                     </div>
-                    <div className="answer-bubble">
-                      <strong>A:</strong> {chat.answer}
+                  ))}
+                  
+                  {/* Current question being processed */}
+                  {currentQuestion && (
+                    <div className="chat-item">
+                      <div className="question-bubble">
+                        <strong>Q:</strong> {currentQuestion}
+                      </div>
+                      <div className="answer-bubble loading">
+                        <strong>A:</strong> 
+                        <div className="loading-dots">
+                          <span></span>
+                          <span></span>
+                          <span></span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
-              
-              {/* Current Answer */}
-              {answer && chatHistory.length === 0 && (
-                <div className="chat-item">
-                  <div className="answer-bubble">
-                    <strong>A:</strong> {answer}
-                  </div>
-                </div>
+                  )}
+                </>
               )}
             </div>
 
