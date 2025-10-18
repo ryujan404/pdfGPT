@@ -1,103 +1,195 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [file, setFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isPdfReady, setIsPdfReady] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [chatHistory, setChatHistory] = useState([]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Handle file selection
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile && selectedFile.type === "application/pdf") {
+      setFile(selectedFile);
+      setUploadStatus("");
+    } else {
+      alert("Please select a PDF file!");
+    }
+  };
+
+  // Upload PDF to API
+  const handleUpload = async () => {
+    if (!file) {
+      alert("Please select a PDF file first!");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadStatus("Uploading and processing PDF...");
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setIsPdfReady(true);
+        setUploadStatus("✅ PDF processed! You can now ask questions.");
+      } else {
+        setUploadStatus("❌ Error: " + data.message);
+      }
+    } catch (error) {
+      setUploadStatus("❌ Error uploading PDF: " + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Ask question to API
+  const handleAskQuestion = async (e) => {
+    e.preventDefault();
+    
+    if (!isPdfReady) {
+      alert("Please upload a PDF first!");
+      return;
+    }
+
+    if (!question.trim()) {
+      alert("Please enter a question!");
+      return;
+    }
+
+    setIsGenerating(true);
+    setAnswer("Generating answer...");
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ question }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setAnswer(data.answer);
+        setChatHistory([...chatHistory, { question, answer: data.answer }]);
+        setQuestion("");
+      } else {
+        setAnswer("❌ Error: " + data.message);
+      }
+    } catch (error) {
+      setAnswer("❌ Error: " + error.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="canvas-container">
+      <div className="canvas-content">
+        {/* Header */}
+        <div className="header">
+          <h1 className="title">📄 pdfGPT</h1>
+          <p className="subtitle">Upload a PDF and ask questions about it</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Upload Section */}
+        <div className="upload-section">
+          <div className="file-input-wrapper">
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={handleFileChange}
+              className="file-input"
+              id="file-upload"
+              disabled={isUploading}
+            />
+            <label htmlFor="file-upload" className="file-label">
+              {file ? `📄 ${file.name}` : "Choose PDF File"}
+            </label>
+            
+            <button
+              onClick={handleUpload}
+              disabled={!file || isUploading}
+              className="upload-button"
+            >
+              {isUploading ? "Processing..." : "Upload & Process"}
+            </button>
+          </div>
+
+          {uploadStatus && (
+            <div className={`status-message ${isPdfReady ? "success" : ""}`}>
+              {uploadStatus}
+            </div>
+          )}
+        </div>
+
+        {/* Chat Section */}
+        {isPdfReady && (
+          <>
+            {/* Chat History */}
+            <div className="chat-history">
+              {chatHistory.length === 0 ? (
+                <p className="empty-state">Ask a question about your PDF below!</p>
+              ) : (
+                chatHistory.map((chat, index) => (
+                  <div key={index} className="chat-item">
+                    <div className="question-bubble">
+                      <strong>Q:</strong> {chat.question}
+                    </div>
+                    <div className="answer-bubble">
+                      <strong>A:</strong> {chat.answer}
+                    </div>
+                  </div>
+                ))
+              )}
+              
+              {/* Current Answer */}
+              {answer && chatHistory.length === 0 && (
+                <div className="chat-item">
+                  <div className="answer-bubble">
+                    <strong>A:</strong> {answer}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Question Input */}
+            <form onSubmit={handleAskQuestion} className="question-form">
+              <input
+                type="text"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="Ask a question about your PDF..."
+                className="question-input"
+                disabled={isGenerating}
+              />
+              <button
+                type="submit"
+                disabled={isGenerating || !question.trim()}
+                className="ask-button"
+              >
+                {isGenerating ? "Thinking..." : "Ask"}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
     </div>
   );
 }
