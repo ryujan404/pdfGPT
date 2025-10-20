@@ -30,28 +30,17 @@ export async function POST(request) {
       .from('documents')
       .select('id', { count: 'exact' });
     
-    console.log(`📊 Total documents in database: ${allDocs?.length || 0}`);
-    
     if (countError) {
       console.error("❌ Error counting documents:", countError);
     }
 
     // ✅ Query Supabase using direct RPC call (more reliable)
-    console.log(`\n🔍 ========== SEARCH DEBUG ==========`);
-    console.log(`📝 Question: "${question}"`);
     
     const questionEmbedding = await embeddings.embedQuery(question);
-    console.log(`✅ Generated embedding with ${questionEmbedding.length} dimensions`);
-    console.log(`📊 First 5 values: [${questionEmbedding.slice(0, 5).join(', ')}...]`);
     
     // Format embedding as PostgreSQL vector string
     const vectorString = `[${questionEmbedding.join(',')}]`; // ✅ With brackets
-
-    console.log(`📦 Vector string length: ${vectorString.length} characters`);
     
-    console.log(`🚀 Calling match_documents with:`);
-    console.log(`   - match_count: 10`);
-    console.log(`   - filter: {}`);
     
     const { data: relevantResults, error: searchError } = await supabaseClient
       .rpc('match_documents', {
@@ -65,23 +54,11 @@ export async function POST(request) {
       throw searchError;
     }
     
-    console.log(`✅ Search completed!`);
-    console.log(`📊 Found ${relevantResults?.length || 0} documents`);
-    
     if (relevantResults && relevantResults.length > 0) {
-      console.log(`\n📄 Search Results:`);
-      relevantResults.forEach((doc, idx) => {
-        console.log(`   ${idx + 1}. Doc ID: ${doc.id}`);
-        console.log(`      Similarity: ${(doc.similarity * 100).toFixed(2)}%`);
-        console.log(`      Content preview: ${doc.content.substring(0, 100)}...`);
-      });
-      
       // Filter results with very low similarity
       const filteredResults = relevantResults.filter(doc => doc.similarity > 0.01); // Very low threshold
-      console.log(`\n🔍 After filtering (similarity > 0.01): ${filteredResults.length} results`);
       
       if (filteredResults.length === 0) {
-        console.log(`⚠️  All results have very low similarity. Using top result anyway...`);
         return NextResponse.json({
           success: true,
           answer: `Based on the document content: ${relevantResults[0].content.substring(0, 500)}...`,
@@ -89,9 +66,8 @@ export async function POST(request) {
         });
       }
     } else {
-      console.log(`⚠️  No documents returned from search!`);
+      
     }
-    console.log(`========================================\n`)
     
     const relevantDocs = relevantResults || [];
 
@@ -126,8 +102,6 @@ export async function POST(request) {
     });
 
     const answer = chatCompletion.choices[0]?.message?.content || "No answer generated";
-
-    console.log("✅ Answer generated with Groq!");
 
     return NextResponse.json({
       success: true,

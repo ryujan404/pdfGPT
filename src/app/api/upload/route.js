@@ -62,13 +62,10 @@ export async function POST(request) {
     );
 
     // ✅ Store vectors in Supabase (RAW SQL - bulletproof method)
-    console.log(`📝 Storing ${chunks.length} chunks to Supabase...`);
-    console.log(`📄 First chunk preview: ${chunks[0].pageContent.substring(0, 100)}...`);
     
     // Generate embeddings for all chunks manually
     for (const chunk of chunks) {
       const embedding = await embeddings.embedQuery(chunk.pageContent);
-      console.log(`🧪 Generated embedding with ${embedding.length} dimensions`);
       
       // Convert embedding array to PostgreSQL vector format (with brackets)
       const vectorString = `[${embedding.join(',')}]`;
@@ -84,28 +81,22 @@ export async function POST(request) {
         console.error("❌ Insert error:", insertError);
         throw new Error(`Failed to insert document: ${insertError.message}`);
       }
-      
-      console.log(`✅ Inserted chunk successfully`);
     }
-
-    console.log(`✅ Processed ${chunks.length} chunks and stored in Supabase!`);
     
     // Verify the documents were stored WITH proper embeddings
     const { data: verifyData, error: verifyError } = await supabaseClient
       .rpc('check_embedding_dimensions');
     
     if (verifyError) {
-      console.log(`⚠️ Verification query not available (that's ok)`);
+      
     } else if (verifyData) {
-      console.log(`✅ Verification: Embeddings stored correctly`);
+      
     }
     
     const { count } = await supabaseClient
       .from('documents')
       .select('*', { count: 'exact', head: true });
     
-    console.log(`📊 Total documents in database: ${count}`);
-
     return NextResponse.json({
       success: true,
       message: "PDF processed successfully",
